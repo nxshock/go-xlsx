@@ -7,19 +7,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAllFile1(t *testing.T) {
+func TestAllFileCells1(t *testing.T) {
 	expectedData := [][]xlsx.Cell{
 		[]xlsx.Cell{"column1", "column2"},
 		[]xlsx.Cell{"1", "text1"},
 		[]xlsx.Cell{"2", "text2"}}
 
-	f, err := xlsx.Open("testdata/test1.xlsx")
+	f, err := xlsx.OpenAsCellSlice("testdata/test1.xlsx")
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedData, f)
 }
 
-func TestByRowFile1(t *testing.T) {
+func TestAllFileStrings1(t *testing.T) {
+	expectedData := [][]string{
+		{"column1", "column2"},
+		{"1", "text1"},
+		{"2", "text2"}}
+
+	f, err := xlsx.OpenAsStringSlice("testdata/test1.xlsx")
+	assert.Nil(t, err)
+
+	assert.Equal(t, expectedData, f)
+}
+
+func TestByRowFileCells1(t *testing.T) {
 	expectedData := [][]xlsx.Cell{
 		[]xlsx.Cell{"column1", "column2"},
 		[]xlsx.Cell{"1", "text1"},

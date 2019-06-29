@@ -64,7 +64,7 @@ func ReadFileByRow(filePath string) (fileData chan []Cell, err error) {
 	return fileData, err
 }
 
-func Open(filePath string) ([][]Cell, error) {
+func OpenAsCellSlice(filePath string) ([][]Cell, error) {
 	rowChan, err := ReadFileByRow(filePath)
 	if err != nil {
 		return nil, err
@@ -74,6 +74,27 @@ func Open(filePath string) ([][]Cell, error) {
 
 	for row := range rowChan {
 		result = append(result, row)
+	}
+
+	return result, err
+}
+
+func OpenAsStringSlice(filePath string) ([][]string, error) {
+	rowChan, err := ReadFileByRow(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var result [][]string
+
+	for row := range rowChan {
+		var stringRow []string
+
+		for _, cell := range row {
+			stringRow = append(stringRow, cell.String())
+		}
+
+		result = append(result, stringRow)
 	}
 
 	return result, err
@@ -193,5 +214,6 @@ func readSheetCells(f *zip.File, sharedStrings *ooxml.SharedStrings) (cells chan
 			}
 		}
 	}()
-	return
+
+	return cells, nil
 }

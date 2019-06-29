@@ -8,10 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test(t *testing.T) {
-	cell := xlsx.Cell("0")
-	assert.Equal(t, time.Date(1899, 12, 30, 0, 0, 0, 0, time.Local), cell.ExcelTime())
+func TestExcelTime(t *testing.T) {
+	assert.Equal(t, time.Date(1899, 12, 30, 0, 0, 0, 0, time.Local), xlsx.Cell("0").ExcelTime())
+	assert.Equal(t, time.Date(2019, 2, 21, 0, 0, 0, 0, time.Local), xlsx.Cell("43517").ExcelTime())
+}
 
-	cell = xlsx.Cell("43517")
-	assert.Equal(t, time.Date(2019, 2, 21, 0, 0, 0, 0, time.Local), cell.ExcelTime())
+func TestParseTime(t *testing.T) {
+	assert.Equal(t, time.Date(2000, 1, 2, 3, 4, 5, 0, time.Local), xlsx.Cell("20000102030405").Time("20060102030405"))
 }

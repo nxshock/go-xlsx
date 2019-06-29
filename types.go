@@ -81,3 +81,12 @@ func (cell Cell) ExcelTime() time.Time {
 	}
 	return time.Date(1900, 1, 1, 0, 0, 0, 0, time.Local).Add(time.Duration(24*float64(time.Hour)*f - 2*24*float64(time.Hour)))
 }
+
+func (cell Cell) Time(layout string) time.Time {
+	t, err := time.ParseInLocation(layout, string(cell), time.Local)
+	if err != nil {
+		return time.Time{}
+	}
+
+	return t
+}

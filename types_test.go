@@ -10,8 +10,8 @@ import (
 
 func Test(t *testing.T) {
 	cell := xlsx.Cell("0")
-	assert.Equal(t, time.Date(1899, 12, 30, 0, 0, 0, 0, time.Local), cell.Time())
+	assert.Equal(t, time.Date(1899, 12, 30, 0, 0, 0, 0, time.Local), cell.ExcelTime())
 
 	cell = xlsx.Cell("43517")
-	assert.Equal(t, time.Date(2019, 2, 21, 0, 0, 0, 0, time.Local), cell.Time())
+	assert.Equal(t, time.Date(2019, 2, 21, 0, 0, 0, 0, time.Local), cell.ExcelTime())
 }

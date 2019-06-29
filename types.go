@@ -74,7 +74,7 @@ func (cell Cell) Float() float64 {
 	return f
 }
 
-func (cell Cell) Time() time.Time {
+func (cell Cell) ExcelTime() time.Time {
 	f, err := strconv.ParseFloat(string(cell), 64)
 	if err != nil {
 		return time.Time{}

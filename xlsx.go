@@ -11,12 +11,11 @@ import (
 	"github.com/nxshock/go-xlsx/ooxml"
 )
 
-func Open(path string) (*Workbook, error) {
-	r, err := zip.OpenReader(path)
+func ReadFileByRow(filePath string) (fileData chan []Cell, err error) {
+	r, err := zip.OpenReader(filePath)
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
 
 	var (
 		sharedStrings *ooxml.SharedStrings
@@ -37,27 +36,50 @@ func Open(path string) (*Workbook, error) {
 		}
 	}
 
-	w := new(Workbook)
+	//TODO: добавить поиск нужного листа
+
 	for _, file := range r.File {
 		if !(strings.HasPrefix(file.Name, "xl/worksheets/sheet") && strings.HasSuffix(file.Name, ".xml")) {
 			continue
 		}
 
-		sheet, err := readSheet(file, sharedStrings)
+		data, err := readSheetCells(file, sharedStrings)
 		if err != nil {
 			return nil, err
 		}
-		if sheet == nil {
-			continue
-		}
-		w.Sheet = sheet
+
+		fileData = make(chan []Cell)
+		go func() {
+			defer r.Close()
+			defer close(fileData)
+
+			for row := range data {
+				fileData <- row
+			}
+		}()
+
 		break
 	}
 
-	return w, err
+	return fileData, err
 }
 
-func readWorkbook(f *zip.File) (workbook *ooxml.Workbook, err error) {
+func Open(filePath string) ([][]Cell, error) {
+	rowChan, err := ReadFileByRow(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var result [][]Cell
+
+	for row := range rowChan {
+		result = append(result, row)
+	}
+
+	return result, err
+}
+
+/*func readWorkbook(f *zip.File) (workbook *ooxml.Workbook, err error) {
 	r, err := f.Open()
 	if err != nil {
 		return nil, err
@@ -71,7 +93,7 @@ func readWorkbook(f *zip.File) (workbook *ooxml.Workbook, err error) {
 
 	err = xml.Unmarshal(b, &workbook)
 	return
-}
+}*/
 
 func readSharedStrings(f *zip.File) (sharedStrings *ooxml.SharedStrings, err error) {
 	r, err := f.Open()
@@ -89,66 +111,87 @@ func readSharedStrings(f *zip.File) (sharedStrings *ooxml.SharedStrings, err err
 	return
 }
 
-func readSheet(f *zip.File, sharedStrings *ooxml.SharedStrings) (sheet *Sheet, err error) {
+func readAll(f *zip.File, sharedStrings *ooxml.SharedStrings) (data [][]Cell, err error) {
+	cellsChan, err := readSheetCells(f, sharedStrings)
+	if err != nil {
+		return nil, err
+	}
+
+	for cells := range cellsChan {
+		data = append(data, cells)
+	}
+
+	return data, nil
+}
+
+func readSheetCells(f *zip.File, sharedStrings *ooxml.SharedStrings) (cells chan []Cell, err error) {
+	cells = make(chan []Cell)
+
 	r, err := f.Open()
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
-
-	sheet = new(Sheet)
 
 	d := xml.NewDecoder(r)
-	for {
-		t, err := d.Token()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			panic(err)
-		}
-		switch t := t.(type) {
-		case xml.StartElement:
-			if t.Name.Local == "sheetView" {
-				var sheetView ooxml.SheetView
-				if err := d.DecodeElement(&sheetView, &t); err != nil {
-					return nil, err
-				}
-				if sheetView.TabSelected != 1 {
-					return nil, nil
-				}
-				continue
-			}
+	go func() {
+		defer r.Close()
+		defer close(cells)
 
-			if t.Name.Local == "row" {
-				var (
-					fileRow ooxml.Row
-					row     Row
-				)
-				if err := d.DecodeElement(&fileRow, &t); err != nil {
-					return nil, err
+		for {
+			t, err := d.Token()
+			if err != nil {
+				if err == io.EOF {
+					break
 				}
-				for i := range fileRow.Cells {
-					if fileRow.Cells[i].Type == "s" {
-						n, err := strconv.Atoi(fileRow.Cells[i].Value)
+				panic(err) //TODO: do not panic
+			}
+			switch t := t.(type) {
+			case xml.StartElement:
+				if t.Name.Local == "sheetView" {
+					var sheetView ooxml.SheetView
+					if err := d.DecodeElement(&sheetView, &t); err != nil {
+						//return nil, err
+						panic(err)
+					}
+					if sheetView.TabSelected != 1 {
+						//return nil, nil
+						panic(err) //TODO: переделать на проверку, является ли данный лист активным, раньше в коде
+					}
+					continue
+				}
+
+				if t.Name.Local == "row" {
+					var (
+						fileRow ooxml.Row
+						row     []Cell
+					)
+					if err := d.DecodeElement(&fileRow, &t); err != nil {
+						//return nil, err
+						panic(err)
+					}
+					for i := range fileRow.Cells {
+						if fileRow.Cells[i].Type == "s" {
+							n, err := strconv.Atoi(fileRow.Cells[i].Value)
+							if err != nil {
+								panic(err)
+							}
+							fileRow.Cells[i].Value = sharedStrings.Strings[n].Text
+						}
+						c, _, err := ooxml.ParseCellName(fileRow.Cells[i].R)
 						if err != nil {
+							//return nil, err
 							panic(err)
 						}
-						fileRow.Cells[i].Value = sharedStrings.Strings[n].Text
+						if c > len(row) {
+							s := make([]Cell, c-len(row))
+							row = append(row, s...)
+						}
+						row = append(row, []Cell{Cell(fileRow.Cells[i].Value)}...)
 					}
-					c, _, err := ooxml.ParseCellName(fileRow.Cells[i].R)
-					if err != nil {
-						return nil, err
-					}
-					if c > len(row) {
-						s := make([]Cell, c-len(row))
-						row = append(row, s...)
-					}
-					row = append(row, []Cell{Cell(fileRow.Cells[i].Value)}...)
+					cells <- row
 				}
-				sheet.Rows = append(sheet.Rows, row)
 			}
 		}
-	}
+	}()
 	return
 }

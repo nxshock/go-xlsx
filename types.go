@@ -14,14 +14,12 @@ type Workbook struct {
 
 type Sheet struct {
 	Name string
-	Rows []Row
+	Rows [][]Cell
 }
-
-type Row []Cell
 
 type Cell string
 
-func (workbook *Workbook) Save(fileName string) error {
+func (workbook *Workbook) SaveToCSV(fileName string) error {
 	f, _ := os.Create(fileName)
 	defer f.Close()
 

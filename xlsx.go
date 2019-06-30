@@ -11,6 +11,7 @@ import (
 	"github.com/nxshock/go-xlsx/ooxml"
 )
 
+// ReadFileByRow returns data from specified file by row
 func ReadFileByRow(filePath string) (fileData chan []Cell, err error) {
 	r, err := zip.OpenReader(filePath)
 	if err != nil {
@@ -28,11 +29,6 @@ func ReadFileByRow(filePath string) (fileData chan []Cell, err error) {
 			if err != nil {
 				return nil, err
 			}
-			/*case "xl/workbook.xml":
-			workbook, err = readWorkbook(file)
-			if err != nil {
-				return nil, err
-			}*/
 		}
 	}
 
@@ -64,6 +60,7 @@ func ReadFileByRow(filePath string) (fileData chan []Cell, err error) {
 	return fileData, err
 }
 
+// OpenAsCellSlice returns all data from specified file as cells
 func OpenAsCellSlice(filePath string) ([][]Cell, error) {
 	rowChan, err := ReadFileByRow(filePath)
 	if err != nil {
@@ -79,6 +76,7 @@ func OpenAsCellSlice(filePath string) ([][]Cell, error) {
 	return result, err
 }
 
+// OpenAsStringSlice returns all data from specified file as strings
 func OpenAsStringSlice(filePath string) ([][]string, error) {
 	rowChan, err := ReadFileByRow(filePath)
 	if err != nil {
@@ -99,22 +97,6 @@ func OpenAsStringSlice(filePath string) ([][]string, error) {
 
 	return result, err
 }
-
-/*func readWorkbook(f *zip.File) (workbook *ooxml.Workbook, err error) {
-	r, err := f.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	err = xml.Unmarshal(b, &workbook)
-	return
-}*/
 
 func readSharedStrings(f *zip.File) (sharedStrings *ooxml.SharedStrings, err error) {
 	r, err := f.Open()
@@ -171,11 +153,9 @@ func readSheetCells(f *zip.File, sharedStrings *ooxml.SharedStrings) (cells chan
 				if t.Name.Local == "sheetView" {
 					var sheetView ooxml.SheetView
 					if err := d.DecodeElement(&sheetView, &t); err != nil {
-						//return nil, err
-						panic(err)
+						panic(err) //TODO: do not panic
 					}
 					if sheetView.TabSelected != 1 {
-						//return nil, nil
 						panic(err) //TODO: переделать на проверку, является ли данный лист активным, раньше в коде
 					}
 					continue
@@ -187,8 +167,7 @@ func readSheetCells(f *zip.File, sharedStrings *ooxml.SharedStrings) (cells chan
 						row     []Cell
 					)
 					if err := d.DecodeElement(&fileRow, &t); err != nil {
-						//return nil, err
-						panic(err)
+						panic(err) //TODO: do not panic
 					}
 					for i := range fileRow.Cells {
 						if fileRow.Cells[i].Type == "s" {
@@ -200,8 +179,7 @@ func readSheetCells(f *zip.File, sharedStrings *ooxml.SharedStrings) (cells chan
 						}
 						c, _, err := ooxml.ParseCellName(fileRow.Cells[i].R)
 						if err != nil {
-							//return nil, err
-							panic(err)
+							panic(err) //TODO: do not panic
 						}
 						if c > len(row) {
 							s := make([]Cell, c-len(row))

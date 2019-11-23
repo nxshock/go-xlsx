@@ -175,7 +175,7 @@ func readSheetCells(f *zip.File, sharedStrings *ooxml.SharedStrings) (cells chan
 							if err != nil {
 								panic(err)
 							}
-							fileRow.Cells[i].Value = sharedStrings.Strings[n].Text
+							fileRow.Cells[i].Value = sharedStrings.Strings[n]
 						}
 						c, _, err := ooxml.ParseCellName(fileRow.Cells[i].R)
 						if err != nil {
